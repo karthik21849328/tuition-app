@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import type { SignInRole } from '../contexts/AuthContext';
 import { LogIn, AlertCircle } from 'lucide-react';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'admin' | 'student'>('student');
+  const [role, setRole] = useState<SignInRole>('student');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
@@ -24,6 +25,18 @@ export default function Login() {
     }
   };
 
+  const roleBtn = (r: SignInRole, label: string) => (
+    <button
+      type="button"
+      onClick={() => setRole(r)}
+      className={`flex-1 py-2.5 text-sm font-medium transition ${
+        role === r ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'
+      } ${r !== 'student' ? 'border-l border-gray-300' : ''}`}
+    >
+      {label}
+    </button>
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
@@ -31,7 +44,7 @@ export default function Login() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
             <LogIn className="w-8 h-8 text-blue-600" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Attendance System</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Joshi Tuotrials</h1>
           <p className="text-gray-600 mt-2">Sign in (demo: any email and password)</p>
         </div>
 
@@ -46,31 +59,12 @@ export default function Login() {
           <div>
             <span className="block text-sm font-medium text-gray-700 mb-2">I am signing in as</span>
             <div className="flex rounded-lg border border-gray-300 overflow-hidden">
-              <button
-                type="button"
-                onClick={() => setRole('student')}
-                className={`flex-1 py-2.5 text-sm font-medium transition ${
-                  role === 'student'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Student
-              </button>
-              <button
-                type="button"
-                onClick={() => setRole('admin')}
-                className={`flex-1 py-2.5 text-sm font-medium transition border-l border-gray-300 ${
-                  role === 'admin'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Admin
-              </button>
+              {roleBtn('student', 'Student')}
+              {roleBtn('teacher', 'Teacher')}
+              {roleBtn('admin', 'Admin')}
             </div>
             <p className="text-xs text-gray-500 mt-2">
-              This chooses which dashboard you see. It is not validated against a server.
+              Chooses your dashboard. Teachers can use the email saved in Teachers (e.g. teacher@demo.com).
             </p>
           </div>
 
@@ -84,7 +78,7 @@ export default function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-              placeholder="e.g. student@demo.com"
+              placeholder="e.g. student@demo.com or teacher@demo.com"
               required
             />
           </div>

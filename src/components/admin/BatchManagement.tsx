@@ -1,15 +1,25 @@
 import { useState } from 'react';
 import { useAppData, StudentWithProfile } from '../../contexts/AppDataContext';
-import { PlusCircle, CreditCard as Edit, Trash2, X, Users } from 'lucide-react';
+import { PlusCircle, CreditCard as Edit, Trash2, X, Users, GraduationCap } from 'lucide-react';
 import { Batch } from '../../types';
 
 export default function BatchManagement() {
-  const { data, addBatch, updateBatch, deleteBatch, setBatchAssignments, getStudentBatchesForBatch } =
-    useAppData();
+  const {
+    data,
+    addBatch,
+    updateBatch,
+    deleteBatch,
+    setBatchAssignments,
+    getStudentBatchesForBatch,
+    setBatchTeacherAssignments,
+    getTeachersForBatch,
+  } = useAppData();
   const batches = data.batches;
   const students = data.students;
+  const teachers = data.teachers.filter((t) => t.active);
   const [showModal, setShowModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showTeacherModal, setShowTeacherModal] = useState(false);
   const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null);
   const [editingBatch, setEditingBatch] = useState<Batch | null>(null);
   const [formData, setFormData] = useState({
@@ -19,6 +29,7 @@ export default function BatchManagement() {
     days: [] as string[],
   });
   const [assignedStudents, setAssignedStudents] = useState<string[]>([]);
+  const [assignedTeachers, setAssignedTeachers] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -112,6 +123,35 @@ export default function BatchManagement() {
     }
   };
 
+  const handleAssignTeachers = (batch: Batch) => {
+    setSelectedBatch(batch);
+    const current = getTeachersForBatch(batch.id).map((t) => t.id);
+    setAssignedTeachers(current);
+    setShowTeacherModal(true);
+  };
+
+  const toggleTeacherAssignment = (teacherId: string) => {
+    if (assignedTeachers.includes(teacherId)) {
+      setAssignedTeachers(assignedTeachers.filter((id) => id !== teacherId));
+    } else {
+      setAssignedTeachers([...assignedTeachers, teacherId]);
+    }
+  };
+
+  const saveTeacherAssignments = () => {
+    if (!selectedBatch) return;
+    setSubmitting(true);
+    try {
+      setBatchTeacherAssignments(selectedBatch.id, assignedTeachers);
+      alert('Teacher assignments saved.');
+      setShowTeacherModal(false);
+      setSelectedBatch(null);
+      setAssignedTeachers([]);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const closeModal = () => {
     setShowModal(false);
     setEditingBatch(null);
@@ -163,25 +203,42 @@ export default function BatchManagement() {
                     </span>
                   ))}
                 </div>
+                <p className="text-xs text-gray-500 pt-1">
+                  Teachers:{' '}
+                  {getTeachersForBatch(batch.id).length ? (
+                    getTeachersForBatch(batch.id)
+                      .map((t) => t.name)
+                      .join(', ')
+                  ) : (
+                    <span className="italic">None</span>
+                  )}
+                </p>
               </div>
-              <div className="flex space-x-2">
+              <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => handleAssignStudents(batch)}
-                  className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-green-600 hover:bg-green-50 rounded-lg transition text-sm"
+                  className="flex-1 min-w-[100px] flex items-center justify-center space-x-1 px-3 py-2 text-green-600 hover:bg-green-50 rounded-lg transition text-sm"
                 >
                   <Users className="w-4 h-4" />
-                  <span>Assign</span>
+                  <span>Students</span>
+                </button>
+                <button
+                  onClick={() => handleAssignTeachers(batch)}
+                  className="flex-1 min-w-[100px] flex items-center justify-center space-x-1 px-3 py-2 text-violet-600 hover:bg-violet-50 rounded-lg transition text-sm"
+                >
+                  <GraduationCap className="w-4 h-4" />
+                  <span>Teachers</span>
                 </button>
                 <button
                   onClick={() => handleEdit(batch)}
-                  className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition text-sm"
+                  className="flex-1 min-w-[100px] flex items-center justify-center space-x-1 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition text-sm"
                 >
                   <Edit className="w-4 h-4" />
                   <span>Edit</span>
                 </button>
                 <button
                   onClick={() => handleDelete(batch)}
-                  className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition text-sm"
+                  className="flex-1 min-w-[100px] flex items-center justify-center space-x-1 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition text-sm"
                 >
                   <Trash2 className="w-4 h-4" />
                   <span>Delete</span>
@@ -290,7 +347,8 @@ export default function BatchManagement() {
           <div className="bg-white rounded-xl max-w-md w-full p-6 max-h-[80vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold text-gray-900">Assign Students to {selectedBatch.name}</h3>
-              <button
+                <button
+                type="button"
                 onClick={() => {
                   setShowAssignModal(false);
                   setSelectedBatch(null);
@@ -341,6 +399,76 @@ export default function BatchManagement() {
                 onClick={saveAssignments}
                 disabled={submitting}
                 className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition disabled:opacity-50"
+              >
+                {submitting ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showTeacherModal && selectedBatch && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-900">
+                Assign teachers — {selectedBatch.name}
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowTeacherModal(false);
+                  setSelectedBatch(null);
+                  setAssignedTeachers([]);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Selected teachers can log classes for this batch and will see it in their portal.
+            </p>
+            <div className="space-y-2 mb-6">
+              {teachers.length > 0 ? (
+                teachers.map((t) => (
+                  <label
+                    key={t.id}
+                    className="flex items-center space-x-3 p-3 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={assignedTeachers.includes(t.id)}
+                      onChange={() => toggleTeacherAssignment(t.id)}
+                      className="rounded text-violet-600 focus:ring-2 focus:ring-violet-500"
+                    />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{t.name}</p>
+                      <p className="text-xs text-gray-600">{t.email}</p>
+                    </div>
+                  </label>
+                ))
+              ) : (
+                <p className="text-center text-gray-500 py-4">Add active teachers under Teachers first.</p>
+              )}
+            </div>
+            <div className="flex space-x-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowTeacherModal(false);
+                  setSelectedBatch(null);
+                  setAssignedTeachers([]);
+                }}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveTeacherAssignments}
+                disabled={submitting}
+                className="flex-1 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg transition disabled:opacity-50"
               >
                 {submitting ? 'Saving...' : 'Save'}
               </button>

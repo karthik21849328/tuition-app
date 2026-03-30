@@ -47,7 +47,7 @@ export default function StudentDashboard() {
       <nav className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <h1 className="text-xl font-bold text-gray-900">Student Portal</h1>
+            <h1 className="text-xl font-bold text-gray-900">Joshi Tuotrials</h1>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">{profile?.full_name}</span>
               <button

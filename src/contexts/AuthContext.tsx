@@ -9,11 +9,13 @@ export interface AuthUser {
   email: string;
 }
 
+export type SignInRole = 'admin' | 'student' | 'teacher';
+
 interface AuthContextType {
   user: AuthUser | null;
   profile: Profile | null;
   loading: boolean;
-  signIn: (email: string, password: string, role: 'admin' | 'student') => Promise<void>;
+  signIn: (email: string, password: string, role: SignInRole) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -48,7 +50,7 @@ function slugEmail(email: string) {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { getStudents } = useAppData();
+  const { getStudents, getTeachers } = useAppData();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -63,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = useCallback(
-    async (email: string, password: string, role: 'admin' | 'student') => {
+    async (email: string, password: string, role: SignInRole) => {
       const trimmedEmail = email.trim();
       const trimmedPassword = password.trim();
       if (!trimmedEmail || !trimmedPassword) {
@@ -91,6 +93,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      if (role === 'teacher') {
+        const teachers = getTeachers();
+        const match = teachers.find(
+          (x) => x.email.toLowerCase() === trimmedEmail.toLowerCase() && x.active
+        );
+        const id = match?.id ?? `teacher-${slugEmail(trimmedEmail)}`;
+        const authUser: AuthUser = { id, email: trimmedEmail.toLowerCase() };
+        const prof: Profile = {
+          id,
+          email: authUser.email,
+          role: 'teacher',
+          full_name: match?.name ?? full_name,
+          created_at: t,
+          updated_at: t,
+        };
+        saveSession(authUser, prof);
+        setUser(authUser);
+        setProfile(prof);
+        return;
+      }
+
       const students = getStudents();
       const match = students.find(
         (s) => s.profiles?.email?.toLowerCase() === trimmedEmail.toLowerCase()
@@ -109,7 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(authUser);
       setProfile(prof);
     },
-    [getStudents]
+    [getStudents, getTeachers]
   );
 
   const signOut = useCallback(async () => {
